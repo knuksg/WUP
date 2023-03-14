@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -57,15 +58,20 @@ class LoginController extends GetxController {
       ],
     );
 
-    if (appleCredential.state != null) {
-      await signUp(appleCredential.email!, appleCredential.givenName);
-      getStorage.write("email", appleCredential.email);
-      getStorage.write("name", appleCredential.givenName);
-      if (getStorage.read('mbti') != null) {
-        Get.offAllNamed(Routes.HOME);
-      } else {
-        Get.offAllNamed(Routes.WELCOME);
-      }
+    final oauthCredential = OAuthProvider("apple.com").credential(
+      idToken: appleCredential.identityToken,
+      accessToken: appleCredential.authorizationCode,
+    );
+
+    final result =
+        await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    await signUp(result.user!.email!, result.user!.displayName);
+    getStorage.write("email", result.user!.email!);
+    getStorage.write("name", result.user!.displayName);
+    if (getStorage.read('mbti') != null) {
+      Get.offAllNamed(Routes.HOME);
+    } else {
+      Get.offAllNamed(Routes.WELCOME);
     }
   }
 
